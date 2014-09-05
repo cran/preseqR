@@ -20,11 +20,11 @@
 #include "continued_fraction.h"
 #include <vector>
 #include <cmath>
+#include <R.h>
 
 
 using std::vector;
 using std::min;
-using std::isfinite;
 
 const double TOLERANCE = 1e-20;
 
@@ -252,9 +252,9 @@ evaluate_above_diagonal(const vector<double> &cf_coeffs,
 
   double offset_part = 0.0;
   for (size_t i = 0; i < offset_coeffs.size(); i++)
-    offset_part += offset_coeffs[i]*pow(val, i);
+    offset_part += offset_coeffs[i]*std::pow(val, (int)i);
   
-  return offset_part + pow(val, min(depth, offset_coeffs.size()))*
+  return offset_part + std::pow(val, (int)min(depth, offset_coeffs.size()))*
     current_num/current_denom;
 } 
 
@@ -301,10 +301,10 @@ evaluate_below_diagonal(const vector<double> &cf_coeffs,
   
   double offset_terms = 0.0;
   for (size_t i = 0; i < min(offset_coeffs.size(), depth); i++)
-    offset_terms += offset_coeffs[i]*pow(val, i);
+    offset_terms += offset_coeffs[i]*std::pow(val, (int)i);
   
   // recall that if lower_offset > 0, we are working with 1/f, invert approx
-  return 1.0/(offset_terms + pow(val, min(offset_coeffs.size(),depth))*
+  return 1.0/(offset_terms + std::pow(val, (int)min(offset_coeffs.size(),depth))*
               current_num/current_denom);
 }
 
@@ -389,7 +389,7 @@ ContinuedFraction::extrapolate_distinct(const vector<double> &counts_hist,
                                         const double max_value, 
                                         const double step_size,
                                         vector<double> &estimates) const {
-  const double hist_sum = accumulate(counts_hist.begin(), counts_hist.end(), 0.0);
+  const double hist_sum = std::accumulate(counts_hist.begin(), counts_hist.end(), 0.0);
   estimates.clear();
   estimates.push_back(hist_sum);
   for (double t = step_size; t <= max_value; t += step_size)
@@ -436,7 +436,7 @@ check_yield_estimates_stability(const vector<double> &estimates) {
   // make sure that the estimate is increasing in the time_step and
   // is below the initial distinct per step_size
   for (size_t i = 0; i < estimates.size(); ++i)
-	  if (!isfinite(estimates[i]))
+	  if (!R_FINITE(estimates[i]))
 		  return false;
   for (size_t i = 1; i < estimates.size(); ++i){
     if (estimates[i] < estimates[i - 1] ){
@@ -476,7 +476,7 @@ ContinuedFractionApproximation::optimal_cont_frac_distinct(const vector<double>
   
   vector<double> full_ps_coeffs;
   for (size_t j = 1; j <= max_terms; j++)
-    full_ps_coeffs.push_back(counts_hist[j]*pow(-1, j + 1));
+    full_ps_coeffs.push_back( counts_hist[j]*std::pow((double)(-1), (int)(j + 1)) );
 
   ContinuedFraction full_CF(full_ps_coeffs, diagonal_idx, max_terms);  
 
