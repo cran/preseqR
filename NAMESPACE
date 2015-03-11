@@ -5,5 +5,8 @@ export(preseqR.rfa.estimate)
 export(preseqR.ztnb.em)
 export(preseqR.ztnb.estimate)
 export(preseqR.ztnb.species.accum.curve)
+export(preseqR.interpolate.distinct)
+export(preseqR.nonreplace.sampling)
+export(preseqR.simu.hist)
 
 S3method(print, RFA)

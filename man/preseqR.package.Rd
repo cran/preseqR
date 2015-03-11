@@ -6,7 +6,8 @@
     An R package for estimation of species accumulation
 }
 \description{
-    preseqR provides functions to estimate species accumulation. Functions work
+    preseqR provides functions to estimate species accumulation curves. 
+    Functions work
     through either rational function approximations to Good and Toulmin's (1956)
     non-parametric empirical Bayes power series estimator or fitting a 
     zero-truncated Negative Binomial distibution to the observed species counts.
@@ -26,6 +27,12 @@ preseqR.rfa.estimate,
 preseqR.ztnb.estimate,
 
 preseqR.ztnb.em,
+
+preseqR.interpolate.distinct,
+
+preseqR.nonreplace.sampling,
+
+preseqR.simu.hist,
 
 data: FisherButterflyHist, ShakespeareWordHist
 }
@@ -57,4 +64,8 @@ The annals of Statistics, 1-26.
 
 Chao, A. (1987). Estimating the population size for capture-recapture data with
 unequal catchability. Biometrics, 783-791.
+
+Heck Jr, K. L., van Belle, G., & Simberloff, D. (1975). 
+Explicit calculation of the rarefaction diversity measurement and the 
+determination of sufficient sample size. Ecology, 1459-1461.
 }

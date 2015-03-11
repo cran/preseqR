@@ -12,46 +12,32 @@ MINOR.correction <- 1e-1
 BOOTSTRAP.factor <- 0.1
 
 
-### read a histogram file or a variable of a two-column table
-### return the count vector of the histogram
-### the ith coordinate x in a count vector means there are x distinct items,
-### each of which appears i times.
-### Coordinates can be zero.
-read.hist <- function(hist.file, header = FALSE)
+### checking the input histogram in an appropariat format
+checking.hist <- function(hist)
 {
-  if (class(hist.file) == "character") {
-    hist.table <- read.table(hist.file, header = header)
-  } else if (!is.null(ncol(hist.file)) && ncol(hist.file) == 2) {
-      if (is.numeric(hist.file[, 1]) && is.numeric(hist.file[, 2])) {
-        hist.table <- hist.file
-      } else {
-        stop("All items in the input should be numeric values")
-      }
-  } else {
-    stop("input should be a variable or a file of a two-column table")
+  if (ncol(hist)!=2 || is.numeric(hist[,1])==FALSE || is.numeric(hist[,2])==FALSE) {
+    stop("Input must be a two-column matrix")
   }
-
   ## the first column is the frequencies of observed items
-  freq <- hist.table[, 1]
+  freq <- hist[, 1]
 
   ## the second column is the number of observed distinct items for each
   ## frequency
-  number.items <- hist.table[, 2]
+  number.items <- hist[, 2]
 
   ## check whether frequencies are at least one and the histogram is sorted
   for (i in 1:length(freq))
-    if (freq[i] <= 0 || freq[i] != floor(freq[i]) || number.items[i] < 0) {
-      stop("frequencies should not be positive integers!")
-    } else {
+    if (freq[i] <= 0 || freq[i] != floor(freq[i])) {
+      stop("The first column must be positive integers!")
+    } else if (number.items[i] < 0) {
+      stop("The second column must be non negative")
+    }
+    else {
         if (i > 1 && freq[i - 1] >= freq[i])
-          stop("The input histogram is not sorted in increasing order")
+          stop("The first column is not sorted in the ascending order")
     }
 
-  ## hist.count is the count vector of the histogram
-  hist.count <- vector(mode = 'numeric', length = max(freq))
-  hist.count[freq] <- number.items
-
-  return(hist.count)
+  return(hist)
 }
 
 
@@ -61,13 +47,17 @@ preseqR.rfa.estimate <- function(CF, t)
 {
   if (class(CF) != "RFA")
     return()
-
+  if (t < 1) 
+    stop("the t should be at least one!")
+  
+  ## the c function interface takes t - 1 as a parameter
+  t <- t - 1
   ## call a c-encoded function c.calculate.continued.fraction
   out <- .C("c_calculate_continued_fraction",
             cf = as.double(CF$cf.coeffs),
             cf.l = as.integer(length(CF$cf.coeffs)),
-            off = as.double(CF$offset.coeffs),
-            di = as.integer(CF$diagonal.idx),
+            off = as.double(NULL),
+            di = as.integer(0),
             de = as.integer(CF$degree),
             coordinate = as.double(t),
             result = as.double(0));
@@ -78,9 +68,10 @@ preseqR.rfa.estimate <- function(CF, t)
 
 
 ### extrapolate given a histogram and a continued fraction
-preseqR.extrapolate.distinct <- function(hist.count, CF, start.size = NULL,
+preseqR.extrapolate.distinct <- function(hist, CF, start.size = NULL,
      step.size = NULL, max.size = NULL)
 {
+  checking.hist(hist)
   ## check CF is a continued fraction with CF attribute
   if (class(CF) != "RFA")
     return(NULL)
@@ -88,54 +79,47 @@ preseqR.extrapolate.distinct <- function(hist.count, CF, start.size = NULL,
   ## parameters for calling the c-encode function c_extrapolate_distinct
   cf.coeffs <- as.double(CF$cf.coeffs)
   cf.coeffs.l <- as.integer(length(CF$cf.coeffs))
-  offset.coeffs <- as.double(CF$offset.coeffs)
-  di <- as.integer(CF$diagonal.idx)
+  offset.coeffs <- as.double(NULL)
+  di <- as.integer(0)
   de <- as.integer(CF$degree)
-  hist.count <- as.double(hist.count)
 
-  ## the styles of the histogram count vector are different between R code
-  ## and c++ code; The first line of the histogram is always [0  0] in c++
-  ## but the line is removed in R-encoded function
-  hist.count <- c(0, hist.count)
-  hist.count.l <- as.integer(length(hist.count))
-
-  ## record the size of the sample based on the histogram count
-  total.reads = 0.0
-  for (i in 1:length(hist.count))
-    total.reads <- total.reads + i*as.integer(hist.count[i])
+  total.sample <- floor(hist[, 1] %*% hist[, 2])
 
   ## set start.size, step.size, max.size if they are not defined by user
   if (is.null(start.size))
-    start.size <- total.reads
+    start.size <- 0
+  if (is.null(max.size)) {
+    ## 100 is a magic number
+    max.size <- 100
+  }
   if (start.size > max.size)
   {
     write("start position has already beyond the maximum prediction", stderr())
     return(NULL)
   }
   if (is.null(step.size))
-    step.size <- total.reads
-  if (is.null(max.size)) {
-    ## 100 is a magic number
-    max.size <- 100*total.reads
-  }
+    step.size <- 1
 
   ## allocate memory to store extrapolation results
   ## first "c.extrapolate.distinct" stores the observed number of distinct
   ## molecules into estimate, then it stores the extrapolation values
   ## thus the allocated memory size is 1 plus the size of extrapolation values,
   ## which is (max.size - start.size) / step.size) + 1
-  extrap.size <- as.integer( (max.size - start.size)/step.size ) + 1
+  extrap.size <- floor( (max.size - start.size) / step.size ) + 1
 
   out <- .C("c_extrapolate_distinct", cf.coeffs, cf.coeffs.l, offset.coeffs,
-            di, de, hist.count, hist.count.l, as.double(start.size), 
+            di, de, as.double(start.size), 
             as.double(step.size), as.double(max.size), 
-            estimate = as.double(vector(mode = 'numeric', extrap.size + 1)),
+            estimate = as.double(vector(mode = 'numeric', extrap.size)),
             estimate.l = as.integer(0));
 
-  extrapolation <- out$estimate[ 1:out$estimate.l ]
+  initial_sum <- floor(sum(hist[, 2]))
+  extrapolation <- out$estimate[ 1:out$estimate.l ] + initial_sum
 
   ## sample size vector for extrapolation
-  sample.size <- start.size + step.size*( (1:length(extrapolation)) - 1 )
+  sample.size <- total.sample * (start.size + step.size*((1:length(extrapolation)) - 1)) + total.sample
+  ## estimation should be conservative
+  sample.size <- ceiling(sample.size)
 
   ## put sample.size and extrapolation results together into a matrix
   result <- matrix(c(sample.size, extrapolation), ncol = 2, byrow = FALSE)
@@ -146,23 +130,18 @@ preseqR.extrapolate.distinct <- function(hist.count, CF, start.size = NULL,
 
 ### do without replacement of random sampling given a count vector of a
 ### histogram; size is a user defined sample size
-nonreplace.sampling <- function(size, hist.count)
+nonreplace.sampling <- function(size, hist)
 {
-  total.sample <- 0
-  i <- 1
-
-  ## calculate total number of sample
-  freq <- 1:length(hist.count)
-  total.sample <- freq %*% hist.count
-
+  ## make sure frequencies are integers
+  hist[, 2] <- floor(hist[, 2])
   ## the number of distinct items
-  distinct.sample <- sum(hist.count)
+  distinct <- sum(hist[, 2])
 
-  ## identities for each distinct read
-  ind <- 1:as.integer(distinct.sample)
+  ## identifier for each distinct item
+  ind <- 1:distinct
 
   ## the size of each read in the library
-  n <- rep(freq, as.integer(hist.count))
+  n <- rep(hist[, 1], hist[, 2])
 
   ## construct a sample space X 
   ## the whole library represents by its indexes. If a read presents t
@@ -172,24 +151,45 @@ nonreplace.sampling <- function(size, hist.count)
   return(sample(X, size, replace = FALSE))
 }
 
+### sub sampling without replacement based on a histogram
+preseqR.nonreplace.sampling <- function(size, hist)
+{
+  ## check the input histogram file
+  checking.hist(hist)
+  ## sub sampling
+  T <- nonreplace.sampling(size, hist)
+  ## record the freq of each sampled species
+  hist[, 2] <- floor(hist[, 2])
+	distinct <- sum(hist[, 2])
+	X <- vector(length=as.integer(distinct), mode="numeric")
+	for (i in T) {
+    X[i] <- X[i] + 1
+  }
+  ## construct the corresponding histogram
+	H <- vector(length=max(X), mode="numeric")
+  for (i in X) {
+		if (i > 0) {
+			H[i] <- H[i] + 1
+    }
+  }
+  ind <- which(H != 0)
+	hist <- matrix(c(ind, H[ind]), ncol = 2)
+  colnames(hist) <- c("j", "n_j")
+  return(hist)
+}	
+
 
 ### the function samples n histograms given a count vector of the histogram
 ### it is based on sampling with replacement (multinomial distribution)
-replace.sampling <- function(n, hist.count)
+replace.sampling <- function(n, hist)
 {
-  ## nonzero indexes in the hist.count
-  nonzero.index <- which(hist.count != 0)
-
-  ## nonzero values in the hist.count
-  nonzero.hist.count <- hist.count[nonzero.index]
-
   ## calculate the distinct number of sample
-  distinct.sample <- sum(hist.count)
+  distinct <- sum(hist[, 2])
 
   ## returning sampling matrix
   ## each column of the matrix represent the second column of a histogram
   ## all histograms use nonzero.index as the first column
-  return( rmultinom(n, as.integer(distinct.sample), nonzero.hist.count) )
+  return( rmultinom(n, distinct, hist[, 2]) )
 }
 
 
@@ -205,35 +205,43 @@ count.distinct <- function(sample)
 
 ### interpolate when the sample size is no more than the size of
 ### the initial experiment
-preseqR.interpolate.distinct <- function(hist.count, ss)
+preseqR.interpolate.distinct <- function(ss, hist)
 {
-  ## calculate total number of sample
-  freq <- 1:length(hist.count)
-  total.sample <- freq %*% hist.count
+  checking.hist(hist)
 
-  inital.distint <- sum(hist.count)
-  upper.limit <- as.integer(total.sample)
-  step.size <- ss
+  ## calculate total number of sample
+  total.sample <- hist[, 1] %*% hist[, 2]
+  N <- floor(total.sample)
+
+  initial.distinct <- sum(hist[, 2])
+  ## the total individuals captured
+  step.size <- as.integer(ss)
 
   ## l is the number of interpolation points
-  l <- as.integer(upper.limit / step.size)
+  l <- as.integer(N / step.size)
 
-  ## if the sample size is larger than the size of experiment, return NULL
-  if (l == 0)
+  ## if the sample size is larger than the size of experiment or 
+  ## the step size is too small, return NULL
+  if (l == 0 || ss < 1)
     return()
+
+  ## explicit calculating the expectation for sampling without replacement
+  ## see K.L Heck 1975
+  ## N is the size of population; n is the size of the sample;
+  ## S is the number of unique species
+  ## n is the size of the sub sample
+  expect.distinct <- function(hist, N, n, S) {
+    denom <- lchoose(N, n)
+    numer <- lchoose(N - hist[, 1], n)
+    p <- exp(numer - denom)
+    return(S - p %*% hist[, 2])
+  }
 
   ## sample size vector
   x <- step.size * ( 1:l )
 
-  ## dimesion must be defined in order to use R apply
-  dim(x) <- length(x)
-
-  ## do sampling without replacement 
-  s <- lapply(x, function(x) nonreplace.sampling(x, hist.count))
-
   ## calculate the number of distinct reads based on each sample size
-  dim(s) <- length(s)
-  yield.estimates <- sapply(s, function(x) count.distinct(x))
+  yield.estimates <- sapply(x, function(x) expect.distinct(hist, N, x, initial.distinct))
 
   ## put sample.size and yield.estimates together into a matrix
   result <- matrix(c(x, yield.estimates), ncol = 2, byrow = FALSE)
@@ -242,42 +250,37 @@ preseqR.interpolate.distinct <- function(hist.count, ss)
   return(result)
 }
 
-
 ### check the goodness of the sample based on good Good & Toulmin's model
-goodtoulmin.2x.extrap <- function(hist.count)
+goodtoulmin.2x.extrap <- function(hist)
 {
-  two_fold_extrap <- 0.0
-  for ( i in 1:length(hist.count) )
-    two_fold_extrap <- two_fold_extrap + (-1.0)^(i + 1) * hist.count[i]
-  return(two_fold_extrap)
+  return((-1)^(hist[, 1] + 1) %*% hist[, 2])
 }
 
 
 ### construct a rational function approximation given a frequencies of count
 ### data
-### di = diagonal, mt = max_terms, 
-### step.adjust is an indicator for whether or not to adjust step.size
-preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
-                              max.extrapolation = NULL, step.adjust=TRUE,
-                              header = FALSE, seed = NULL)
+### mt = max_terms, 
+preseqR.rfa.curve <- function(hist, mt = 100, ss = NULL,
+                              max.extrapolation = NULL)
 {
-  ## set seed to reproduce the results
-  if ( !is.null(seed) ) set.seed(seed)
-
-  hist.count <- read.hist(hist, header)
-
+  checking.hist(hist)
+  ## setting the diagonal value
+  di = 0
   ## minimum required number of terms of power series in order to construct
   ## a continued fraction approximation
   MIN_REQUIRED_TERMS <- 4
 
   ## calculate total number of sample
-  freq <- 1:length(hist.count)
-  total.sample <- freq %*% hist.count
+  total.sample <- hist[, 1] %*% hist[, 2]
+  total.sample <- floor(total.sample)
 
   ## set step.size as the size of the initial experiment if it is undefined
   if (is.null(ss)) {
     ss <- floor(total.sample)
     step.size <- ss
+  } else if (ss < 1) {
+    write("step size is should be at least one", stderr())
+    return(NULL)
   } else {
     step.size <- floor(ss)
   }
@@ -291,18 +294,8 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
     starting.size <- step.size
   } else {
       ## interpolation when sample size is no more than total sample size
-
-      ## adjust step.size when it is too small
-      if (step.adjust == TRUE && step.size < (total.sample / 20)) {
-        step.size <- max(step.size,step.size*floor(total.sample/(20*step.size)))
-
-        ## output the adjusted step size to stderr
-        m <- paste("adjust step size to", toString(step.size), '\n', sep = ' ')
-        write(m, stderr())
-      }
-
       ## interpolate and set the size of sample for initial extrapolation
-      out <- preseqR.interpolate.distinct(hist.count, step.size)
+      out <- preseqR.interpolate.distinct(step.size, hist)
       yield.estimates <- out[, 2]
 
       ## starting sample size for extrapolation
@@ -314,6 +307,9 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
     max.extrapolation <- 100*total.sample
   }
 
+  ## transform a histogram into a vector of frequencies
+  hist.count <- vector(length=max(hist[, 1]), mode="numeric")
+  hist.count[hist[, 1]] <- hist[, 2]
   ## only use non zeros items in histogram from begining up to the first zero
   counts.before.first.zero = 1
   while (as.integer(counts.before.first.zero) <= length(hist.count) &&
@@ -333,7 +329,7 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
     write(m, stderr())
     return(NULL)
   }
-  if(goodtoulmin.2x.extrap(hist.count) < 0.0)
+  if(goodtoulmin.2x.extrap(hist) < 0.0)
   {
     m <- paste("Library expected to saturate in doubling of size",
                " unable to extrapolate", sep = ',')
@@ -363,14 +359,15 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
     return(NULL)
   }
 
+  ## restore the hist.count into the R coded format
+  hist.count <- hist.count[-1]
+
   ## pass results into R variables
   length(out$ps.coeffs) <- out$ps.coeffs.l
   length(out$cf.coeffs) <- out$cf.coeffs.l
   length(out$offset.coeffs) <- as.integer(abs(out$diagonal.idx))
-  CF <- list(out$ps.coeffs, out$cf.coeffs, out$offset.coeffs, out$diagonal.idx,
-             out$degree)
-  names(CF) <- c('ps.coeffs', 'cf.coeffs', 'offset.coeffs', 'diagonal.idx',
-                 'degree')
+  CF <- list(out$ps.coeffs, out$cf.coeffs, out$degree)
+  names(CF) <- c('ps.coeffs', 'cf.coeffs', 'degree')
   class(CF) <- 'RFA'
 
   ## if the sample size is larger than max.extrapolation
@@ -386,10 +383,10 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
   }
 
   ## extrapolation for experiment with large sample size
-  start <- ( starting.size - total.sample )/total.sample
-  end <- ( max.extrapolation + MINOR.correction - total.sample )/total.sample
-  step <- step.size/total.sample
-  res <- preseqR.extrapolate.distinct(hist.count, CF, start, step, end)
+  start <- ( starting.size - total.sample ) / total.sample
+  end <- (max.extrapolation + MINOR.correction - total.sample) / total.sample
+  step <- step.size / total.sample
+  res <- preseqR.extrapolate.distinct(hist, CF, start, step, end)
 
   ## combine results from interpolation/extrapolation
   yield.estimates <- c(yield.estimates, res[, 2])
@@ -406,38 +403,27 @@ preseqR.rfa.curve <- function(hist, di = 0, mt = 100, ss = NULL,
 
 ### generate complexity curve through bootstrapping the histogram
 preseqR.rfa.species.accum.curve <- function(
-    hist, bootstrap.times = 100, di = 0, mt = 100, ss = NULL,
-    max.extrapolation = NULL, step.adjust=TRUE, header = FALSE,
-    ci = 0.95, seed = NULL)
+    hist, bootstrap.times = 100, mt = 100, ss = NULL,
+    max.extrapolation = NULL, ci = 0.95)
 {
-  ## set seed to reproduce the results
-  if ( !is.null(seed) ) set.seed(seed)
-
-  hist.count <- read.hist(hist, header)
+  checking.hist(hist)
+  hist[, 2] <- floor(hist[, 2])
+ 
+  ## setting the diagonal value
+  di = 0
 
   ## calculate the total number of sample
-  freq <- 1:length(hist.count)
-  total.sample <- freq %*% hist.count
-
-  ## calculate the distinct number of sample
-  distinct.sample <- sum(hist.count)
+  total.sample <- hist[, 1] %*% hist[, 2]
 
   ## set the step.size to the size of the initial experiment if it is undefined
   if (is.null(ss)) {
-    ss <- floor(total.sample)
+    ss <- total.sample
     step.size <- ss
+  } else if (ss < 1) {
+    write("step size should be at least one", stderr())
+    return(NULL)
   } else {
     step.size <- floor(ss)
-  }
-
-  ## adjust step.size for sampling complexity curve
-  if ( step.adjust == TRUE && step.size < total.sample/20 )
-  {
-    step.size <- max(step.size, step.size*round(total.sample / (20*step.size)))
-
-    ## output the adjusted step size to stderr
-    m <- paste("adjust step size to", toString(step.size), '\n', sep = ' ')
-    write(m, stderr())
   }
 
   ## set the maximum extrapolation size if it is undefined
@@ -447,14 +433,8 @@ preseqR.rfa.species.accum.curve <- function(
     max.extrapolation <- 100*total.sample
   }
 
-  ## nonzero indexes in the hist.count
-  nonzero.index <- which(hist.count != 0)
-
-  ## nonzero values in the hist.count
-  nonzero.hist.count <- hist.count[nonzero.index]
-
   ## record second columns of resampled histograms
-  re.hist.second.col <- matrix(data = 0, nrow = length(nonzero.index),
+  re.hist.second.col <- matrix(data = 0, nrow = length(hist[, 1]),
                                ncol = MULTINOMIAL.SAMPLE.TIMES)
 
   ## the number of resampling times
@@ -469,16 +449,15 @@ preseqR.rfa.species.accum.curve <- function(
   {
     ## combine nonzero.index column and the second column to build a histogram
     ## table
-    hist.table <- matrix(c(nonzero.index, x), ncol = 2, byrow = FALSE)
-    preseqR.rfa.curve(
-        hist.table, di, mt, step.size, max.extrapolation, step.adjust = FALSE)
+    hist.table <- matrix(c(hist[, 1], x), ncol = 2, byrow = FALSE)
+    preseqR.rfa.curve(hist.table, mt, step.size, max.extrapolation)
   }
 
   while (bootstrap.times > 0) {
 
     ## do sampling with replacement
     ## re.hist.second.col saves the second columns of each resampled histogram
-    re.hist.second.col <- replace.sampling(MULTINOMIAL.SAMPLE.TIMES, hist.count)
+    re.hist.second.col <- replace.sampling(MULTINOMIAL.SAMPLE.TIMES, hist)
 
     ## estimate for each histogram
     out <- apply(re.hist.second.col, 2, f)
@@ -543,12 +522,13 @@ print.RFA <- function(x, digit = 4, ...)
   s <- paste(s, "DEGREE\t", toString(x$degree), "\n\n", sep = '')
 
   ## print the diagonal value
-  s <- paste(s, "DIAGONAL VALUE\t", toString(x$diagonal.idx), "\n\n", sep = '')
+##  s <- paste(s, "DIAGONAL VALUE\t", toString(x$diagonal.idx), "\n\n", sep = '')
 
   ## print the coefficients depending on the value of diagonal value
   s <- paste(s, "COEFFICIENTS:\n\n", sep = '')
 
-  di <- abs(x$diagonal.idx)
+##  di <- abs(x$diagonal.idx)
+  di <- 0
     
   ## the function to print a coefficient
   ## S is the set of coefficients

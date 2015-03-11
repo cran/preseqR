@@ -5,9 +5,7 @@
 Calculate the value of the continued fraction
 }
 \description{
-This function calculates the value of a continued fraction at the
-value t which will correspond to the relative number of additonal
-individuals to be captured.
+This function calculates the value of a continued fraction at \code{t}
 }
 \usage{
 preseqR.rfa.estimate(CF, t)
@@ -15,13 +13,17 @@ preseqR.rfa.estimate(CF, t)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{CF}{
-    A continued fraction.
+    A truncated continued fraction.
   }
   \item{t}{
     A double as the argument.
   }
 }
-
+\details{
+  t is the relative size of the new survey to the initial survey. 
+  The t must be a positive real number no less than 1. 
+  The function value is the gain in new species as the survey size increases.
+}
 \value{
     A double as the function value.
 }
@@ -45,8 +47,8 @@ result = preseqR.rfa.curve(ShakespeareWordHist)
 ## record the constructed continued fraction approximation
 CF = result$continued.fraction
 
-## calculate values when the argument equals to one
-preseqR.rfa.estimate(CF, 1)
+## calculate values when t = 10
+preseqR.rfa.estimate(CF, 10)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
