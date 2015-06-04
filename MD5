@@ -1,9 +1,9 @@
-e28c55d7d5816b8f77d14c33dc8e5453 *DESCRIPTION
+e1f0fb0a9eede39deff6678751a60853 *DESCRIPTION
 e9b7a1d49f2d51879c765ea1d34dafcd *NAMESPACE
-c3e35137b4348dca5bd09bf055ed417f *R/continued_fraction.R
+600b25a6ec827e28f021690f4b0dd61a *R/continued_fraction.R
 a1a67853b34d43e5b85b506e5b00128a *R/simulation.R
 d065cfcf7901a3d8131babe235ff2ce1 *R/ztnb.R
-8994468d677389f04589a2820ddfea42 *README.md
+56ef7ddcb0a75866fbedcdb43682c190 *README.md
 e49ea5e03e9133ab16e001db10774c2f *data/FisherButterflyHist.txt.gz
 9135153d32eb5fa3cf64012797bd7e70 *data/ShakespeareWordHist.txt.gz
 8003aaa6d9b3b54f82a095d8780889aa *man/FisherButterflyHist.Rd
@@ -11,9 +11,9 @@ ec6aca130e6f76e33197af6e05fdaba6 *man/ShakespeareWordHist.Rd
 7a5b4686cdc198dc138a938aa28479e3 *man/preseqR.interpolate.distinct.Rd
 a6b54fcaec9101b316769fc7e468764c *man/preseqR.nonreplace.sampling.Rd
 8df47ab424aa5fdaf0d1e81382178bd3 *man/preseqR.package.Rd
-eee9a2bae9a12fb33264c8fe7d959db1 *man/preseqR.rfa.curve.Rd
+9eff7643a02cb5eb7ffff06d99fafebf *man/preseqR.rfa.curve.Rd
 8e807c01906c4c61549f9eece6d0e5ee *man/preseqR.rfa.estimate.Rd
-3a6eaa428286c0aaf503e418c8255599 *man/preseqR.rfa.species.accum.curve.Rd
+0a151b2d8e74ae8f6d2871745e906656 *man/preseqR.rfa.species.accum.curve.Rd
 c2c5b83312fd332340b8c1543fd70f84 *man/preseqR.simu.hist.Rd
 eee0cc03c4a4a719c2d64fc4b7472901 *man/preseqR.ztnb.em.Rd
 67d89f768e7c701631c91cb9e99813ae *man/preseqR.ztnb.estimate.Rd
