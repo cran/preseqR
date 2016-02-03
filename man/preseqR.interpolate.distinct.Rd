@@ -5,7 +5,8 @@
     Interpolating a species accumulation curve
 }
 \description{
-    Interpolating a species accumulation curve given a survey
+  Interpolating the expected number of species represented in a random sample
+  based on an initial sample. 
 }
 \usage{
   preseqR.interpolate.distinct(ss, n)
@@ -16,25 +17,23 @@
     An positive double equal to the step size between samples.
 }
   \item{n}{
-    Frequencies of the number of individuals of each species captured. 
-    The data must be a two-column matrix.  
-    The first column is the frequency \eqn{j = 1,2,\dots}; and the second column
-    is \eqn{n_j}, the number of species with \eqn{j} individuals observed in the
-    sample. The first column must be sorted in an ascending order.
+    A two-column matrix.
+    The first column is the frequency \eqn{j = 1,2,\dots}; and the second column 
+    is \eqn{n_j}, the number of species with each species represented by \eqn{j} 
+    individuals in the initial sample. The first column must be sorted in an
+    ascending order.
 }
 }
 \details{
-  Assume that the sub sample follows a hypergeometric distribution for a
-  given survey. So the expected number of unique species for a fixed size of 
-  the sub sample is calculated based on the formula in
-  Heck Jr, K. L., van Belle, G., & Simberloff, D. (1975).
-
-  ss should be at least one. 
+    Assume that a random sample (subsample) follows a multivariant hypergeometric 
+    distribution given an initial sample. The expected number of unique species
+    represented in the subsample is then calculated by the formula (1) in 
+    Heck Jr, K. L., van Belle, G., & Simberloff, D. (1975).   
 }
 \value{
-    A two-column matrix representing a interpolated accumulation curve.
-    The first column is the size of the survey; the second column is the 
-    expected number of unique species being observed.
+    A two-column matrix for the expected number of species represented in a random sample.
+    The first column is the size of the random sample; the second column is the 
+    expected number of species represented in the sample.  
 
     NULL if failed.
 }
@@ -56,8 +55,8 @@ library(preseqR)
 ## import data
 data(ShakespeareWordHist)
 
-## interpolating an accumulation curve; the step size is 1e5
-preseqR.interpolate.distinct(1e5, ShakespeareWordHist)
+## interpolating an accumulation curve; the step size is 100,000
+preseqR.interpolate.distinct(100000, ShakespeareWordHist)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
