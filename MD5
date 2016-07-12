@@ -1,4 +1,4 @@
-05d8e59456bd8299df782032dcfd8219 *DESCRIPTION
+f40e77456cde8ce9ac59fb4baf0bdc68 *DESCRIPTION
 bcaf2f3c52e6198eafa27a356daf0c84 *NAMESPACE
 a5ea0013fcd5b86d5560a50791e60661 *R/continued_fraction.R
 009986df9cca043c26fadd74142f5df5 *R/mincount.R
@@ -24,6 +24,6 @@ b87a505c55cdac88bed3a6b021f0dcf7 *man/preseqR.ztnb.em.Rd
 f461d67f1d418607043cb533c6b51a6f *man/preseqR.ztnb.estimate.Rd
 ca96793e428237f77548bbcb4baad263 *man/preseqR.ztnb.mincount.Rd
 16ab561e5fbb2ba27db537c326efa851 *man/preseqR.ztnb.species.accum.curve.Rd
-9f527b1b8f99a9524151d6a0ae472e83 *src/continued_fraction.cpp
+4aa1ce272e948783511a02bc1ae1528f *src/continued_fraction.cpp
 47a8e3c8b9e8a40a31ede436ff15bca7 *src/continued_fraction.h
-b9d0d958b9ac4e8c44887dbbb8688f6f *src/continued_fraction_c_interface.cpp
+f15df4d48de1b3b613c3d86f9b559957 *src/continued_fraction_c_interface.cpp
