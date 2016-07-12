@@ -1,3 +1,22 @@
+#    Copyright (C) 2016 University of Southern California and
+#             Chao Deng and Andrew D. Smith and Timothy Daley
+#
+#    Authors: Chao Deng
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 ### Generate histograms through simulation
 ### The basic assumption is that the number of each individual sampled follows
 ### a poisson process.
@@ -11,11 +30,11 @@ get.expectation <- function(FUN) {
 
 ### generate the histogram based on the simulation
 ### L is the total number of species in a population
-### sample.size is the size of the sample
+### t is the relative sample size
 ### FUN is an RNG. It must take one argument as the number of random numbers
 ### generated and return the number of positive random numbers
 ### FUN can be defined by users
-preseqR.simu.hist <- function(L=1e8, size, FUN) {
+preseqR.simu.hist <- function(L=1e8, t, FUN) {
   if (L > 1e8) {
     L <- 1e8
   } else if (L <= 0) {
@@ -23,8 +42,6 @@ preseqR.simu.hist <- function(L=1e8, size, FUN) {
     return(NULL)
   }
   L <- as.integer(L)
-  E <- get.expectation(FUN)
-  t <- size / (L * E)
   ## save the poisson parameters for each individual in the population
   lambda <- FUN(L)
   ## S saves samples

@@ -1,3 +1,22 @@
+#    Copyright (C) 2016 University of Southern California and
+#             Chao Deng and Andrew D. Smith and Timothy Daley
+#
+#    Authors: Chao Deng
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 ### MAXLENGTH the allocate size for storing complexity curve
 MAXLENGTH <- 10000000
 
@@ -83,7 +102,7 @@ preseqR.extrapolate.distinct <- function(n, CF, start.size = NULL,
   di <- as.integer(0)
   de <- as.integer(CF$degree)
 
-  total.sample <- floor(n[, 1] %*% n[, 2])
+  total.sample <- n[, 1] %*% n[, 2]
 
   ## set start.size, step.size, max.size if they are not defined by user
   if (is.null(start.size))
@@ -113,21 +132,20 @@ preseqR.extrapolate.distinct <- function(n, CF, start.size = NULL,
             estimate = as.double(vector(mode = 'numeric', extrap.size)),
             estimate.l = as.integer(0));
 
-  initial_sum <- floor(sum(n[, 2]))
+  initial_sum <- sum(n[, 2])
   extrapolation <- out$estimate[ 1:out$estimate.l ] + initial_sum
 
   ## sample size vector for extrapolation
   sample.size <- total.sample * (start.size + step.size*((1:length(extrapolation)) - 1)) + 
                  total.sample
   ## estimation should be conservative
-  sample.size <- ceiling(sample.size)
+  sample.size <- sample.size
 
   ## put sample.size and extrapolation results together into a matrix
   result <- matrix(c(sample.size, extrapolation), ncol = 2, byrow = FALSE)
   colnames(result) <- c('sample.size', 'extrapolation')
   return(result)
 }
-
 
 ## sampling without replacement
 ## n frequencies counts
@@ -169,6 +187,18 @@ preseqR.nonreplace.sampling <- function(size, n)
 }
 
 
+lchoose <- function(N, k) {
+  result <- vector(length=max(length(N), length(k)), mode="numeric")
+  index <- which(N - k + 1 > 0)
+  if (length(index) == 0) {
+    result[] <- -Inf }
+  else {
+    result[index] <- (lgamma(N + 1) - lgamma(k + 1))[index] - lgamma((N - k + 1)[index])
+    result[-index] <- -Inf
+  }
+  result
+}
+
 ### interpolate when the sample size is no more than the size of
 ### the initial experiment
 preseqR.interpolate.distinct <- function(ss, n)
@@ -176,15 +206,15 @@ preseqR.interpolate.distinct <- function(ss, n)
   checking.hist(n)
 
   ## calculate total number of sample
-  total.sample <- n[, 1] %*% n[, 2]
-  N <- floor(total.sample)
+  n[, 2] <- as.numeric(n[, 2])
+  N <- n[, 1] %*% n[, 2]
 
-  initial.distinct <- sum(as.numeric(n[, 2]))
+  initial.distinct <- sum(n[, 2])
   ## the total individuals captured
   step.size <- as.double(ss)
 
   ## l is the number of interpolation points
-  l <- as.integer(N / step.size)
+  l <- floor(N / step.size)
 
   ## if the sample size is larger than the size of experiment or 
   ## the step size is too small, return NULL
@@ -231,24 +261,23 @@ preseqR.rfa.curve <- function(n, mt = 100, ss = NULL,
 {
   checking.hist(n)
   ## setting the diagonal value
-  di = 0
+  di <- 0
   ## minimum required number of terms of power series in order to construct
   ## a continued fraction approximation
   MIN_REQUIRED_TERMS <- 4
 
   ## calculate total number of sample
   total.sample <- n[, 1] %*% n[, 2]
-  total.sample <- floor(total.sample)
 
   ## set step.size as the size of the initial experiment if it is undefined
   if (is.null(ss)) {
-    ss <- floor(total.sample)
+    ss <- total.sample
     step.size <- ss
   } else if (ss < 1) {
     write("step size is should be at least one", stderr())
     return(NULL)
   } else {
-    step.size <- floor(ss)
+    step.size <- ss
   }
 
   ## no interpolation if step.size is larger than the size of experiment
@@ -265,7 +294,7 @@ preseqR.rfa.curve <- function(n, mt = 100, ss = NULL,
       yield.estimates <- out[, 2]
 
       ## starting sample size for extrapolation
-      starting.size <- ( as.integer(total.sample/step.size) + 1 )*step.size
+      starting.size <- ( floor(total.sample/step.size) + 1 )*step.size
   }
 
   if (is.null(max.extrapolation)) {
@@ -277,7 +306,7 @@ preseqR.rfa.curve <- function(n, mt = 100, ss = NULL,
   hist.count <- vector(length=max(n[, 1]), mode="numeric")
   hist.count[n[, 1]] <- n[, 2]
   ## only use non zeros items in histogram from begining up to the first zero
-  counts.before.first.zero = 1
+  counts.before.first.zero <- 1
   while (as.integer(counts.before.first.zero) <= length(hist.count) &&
          hist.count[counts.before.first.zero] != 0)
     counts.before.first.zero <- counts.before.first.zero + 1
@@ -286,9 +315,9 @@ preseqR.rfa.curve <- function(n, mt = 100, ss = NULL,
   ## conservatively estimates
   mt <- min(mt, counts.before.first.zero - 1)
   if (asym.linear == TRUE && (mt %% 2 == 0)) {
-    mt = mt - 1
+    mt <- mt - 1
   } else {
-    mt = mt - (mt %% 2)
+    mt <- mt - (mt %% 2)
   }
 
   ## pre-check to make sure the sample is good for prediction
@@ -373,14 +402,14 @@ preseqR.rfa.curve <- function(n, mt = 100, ss = NULL,
 
 ### generate complexity curve through bootstrapping the histogram
 preseqR.rfa.species.accum.curve <- function(
-    n, bootstrap.times = 20, mt = 100, ss = NULL,
+    n, bootstrap.times = 100, mt = 100, ss = NULL,
     max.extrapolation = NULL, conf = 0.95, asym.linear=FALSE)
 {
   checking.hist(n)
-  n[, 2] <- floor(n[, 2])
+  n[, 2] <- as.numeric(n[, 2])
  
   ## setting the diagonal value
-  di = 0
+  di <- 0
 
   ## calculate the total number of sample
   total.sample <- n[, 1] %*% n[, 2]
@@ -393,7 +422,7 @@ preseqR.rfa.species.accum.curve <- function(
     write("step size should be at least one", stderr())
     return(NULL)
   } else {
-    step.size <- floor(ss)
+    step.size <- ss
   }
 
   ## set the maximum extrapolation size if it is undefined
@@ -423,7 +452,7 @@ preseqR.rfa.species.accum.curve <- function(
     preseqR.rfa.curve(hist.table, mt, step.size, max.extrapolation, asym.linear=asym.linear)
   }
 
-  BOOTSTRAP.times = bootstrap.times
+  BOOTSTRAP.times <- bootstrap.times
 
   while (bootstrap.times > 0) {
     ## do sampling with replacement
@@ -471,16 +500,16 @@ preseqR.rfa.species.accum.curve <- function(
 
     # confidence interval based on lognormal
     if (conf <= 0 && conf >= 1)
-      conf = 0.95
+      conf <- 0.95
     C <- exp(qnorm((1 + conf) / 2.0) * sqrt(log(1.0 + variance / (median.estimate^2))))
     left.interval <- median.estimate/C
     right.interval <- median.estimate*C
 
     ## combine results and output a matrix
-    result <- matrix(c(index, median.estimate, left.interval, right.interval),
-                    ncol = 4, byrow = FALSE)
-    lower.ci = sprintf('lower.%.2fCI', conf)
-    upper.ci = sprintf('uppper.%.2fCI', conf)
+    result <- matrix(c(index, median.estimate, left.interval, right.interval), 
+                       ncol = 4, byrow = FALSE)
+    lower.ci <- sprintf('lower.%.2fCI', conf)
+    upper.ci <- sprintf('uppper.%.2fCI', conf)
     colnames(result) <- c('sample.size', 'yield.estimate', lower.ci, upper.ci)
     return(result)
   } else {
