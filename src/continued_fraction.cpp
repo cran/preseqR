@@ -21,11 +21,10 @@
 #include <vector>
 #include <cmath>
 
-#include <R_ext/Arith.h> // for R_FINITE
 
 using std::vector;
 using std::min;
-using std::fabs;
+using std::isfinite;
 
 const double TOLERANCE = 1e-20;
 
@@ -435,7 +434,7 @@ check_yield_estimates_stability(const vector<double> &estimates) {
   // make sure that the estimate is increasing in the time_step and
   // is below the initial distinct per step_size
   for (size_t i = 0; i < estimates.size(); ++i)
-	  if (!R_FINITE(estimates[i]) || estimates[i] < 0)
+	  if (!std::isfinite(estimates[i]) || estimates[i] < 0)
 		  return false;
   for (size_t i = 1; i < estimates.size(); ++i){
     if (estimates[i] < estimates[i - 1] ){

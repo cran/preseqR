@@ -2,11 +2,11 @@
 \alias{preseqR.interpolate.mincount}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-    Interpolating the number of species represented at least r times
+    Interpolating the number of species represented r or more times
 }
 \description{
-    Interpolating the expected number of species represented at least r times in a random sample
-    based on an initial sample. 
+    Interpolating the expected number of species represented at least r times
+    in a random sample based on an initial sample. 
 }
 \usage{
   preseqR.interpolate.mincount(ss, n, r=1)
@@ -19,8 +19,8 @@
   \item{n}{
     A two-column matrix.  
     The first column is the frequency \eqn{j = 1,2,\dots}; and the second column
-    is \eqn{n_j}, the number of species with each species represented by \eqn{j}
-    individuals in the initial sample. The first column must be sorted in an
+    is \eqn{n_j}, the number of species with each species represented \eqn{j}
+    times in the initial sample. The first column must be sorted in an
     ascending order.
 }
   \item{r}{
@@ -32,7 +32,7 @@
   distribution given an initial sample. The expected number of unique species
   represented at least r times in the subsample is then calculated by an 
   expended version of the formula in 
-  Heck Jr, K. L., van Belle, G., & Simberloff, D. (1975).
+  Heck Jr, KL. et al. (1975).
 }
 \value{
     A two-column matrix for the number of species represented at least r times
@@ -62,8 +62,8 @@ data(ShakespeareWordHist)
 
 ## The expected number of species represented twice or more in a random sample 
 ## The step size is 1e5; the initial sample is "ShakespeareWordHist"
-preseqR.interpolate.mincount(1e5, ShakespeareWordHist, r=2)
+preseqR.interpolate.mincount(n=ShakespeareWordHist, ss=1e5, r=2)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ Interpolation, Sufficient representation}
+\keyword{ Interpolation, At least r times}
