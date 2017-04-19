@@ -1,3 +1,20 @@
+UPDATES TO VERSION 3.0.1
+========================
+
+1. Fix a bug in Chao's estimator
+2. Fix issues for a Solaris C++ compiler.
+
+UPDATES TO VERSION 3.0.0
+========================
+
+1. We have changed the return types of many functions in the package. These
+functions no longer generate estimated accumulative curves. 
+Instead, they return function types, which are estimators for the number
+of species represented by at least r indivdiduals in a random sample. 
+
+2. We added several estimators for predicting the number of species represented
+by at least r individuals in a random sample
+
 UPDATES TO VERSION 2.1.1
 ========================
 
