@@ -119,7 +119,7 @@ generating.ps <- function(n, mt, j=1) {
 ## using count frequencies starting from a given count frequency instead of 1
 ## when start.freq = 1, it is identical to the function preseqR.pf.mincount
 ## CHAO: save for a rainy day
-general.ds.mincount <- function(n, r=1, mt=100, start.freq=1)
+general.ds.mincount <- function(n, r=1, mt=20, start.freq=1)
 {
   # check the input format of the histogram
   checking.hist(n)
@@ -239,7 +239,7 @@ general.ds.mincount <- function(n, r=1, mt=100, start.freq=1)
 }
 
 ## nonparametric approach Deng & Smith 2016
-ds.mincount.bootstrap <- function(n, r=1, mt=100, times=100)
+ds.mincount.bootstrap <- function(n, r=1, mt=20, times=100)
 {
   n[, 2] <- as.numeric(n[, 2])
   ## total individuals
@@ -282,7 +282,7 @@ ds.mincount.bootstrap <- function(n, r=1, mt=100, times=100)
   return(list(FUN.nobootstrap=f.estimator, FUN.bootstrap=median.estimators, var=var.estimator))
 }
 
-ds.mincount <- function(n, r=1, mt=100)
+ds.mincount <- function(n, r=1, mt=20)
 {
   checking.hist(n)
 
@@ -320,7 +320,7 @@ ds.mincount <- function(n, r=1, mt=100)
   mt <- mt - (mt %% 2)
   valid.estimator <- FALSE
   m <- mt
-  while (valid.estimator == FALSE) {
+  while (valid.estimator == FALSE && m >= 2) {
 
     rfa <- rf2rfa(RF=rf, m=m)
     ## solving roots
@@ -333,12 +333,6 @@ ds.mincount <- function(n, r=1, mt=100)
       next;
     }
 
-    ## seperating roots by their real parts
-    numer.roots.neg <- numer.roots[which(Re(numer.roots) < 0)]
-    numer.roots.pos <- numer.roots[which(Re(numer.roots) >= 0)]
-    denom.roots.neg <- denom.roots[which(Re(denom.roots) < 0)]
-    denom.roots.pos <- denom.roots[which(Re(denom.roots) >= 0)]
-
     ## record roots in the numerator that are significantly similar to
     ## roots in the denominator
     tmp.roots <- c()
@@ -346,29 +340,27 @@ ds.mincount <- function(n, r=1, mt=100)
     ## simplify the rational function approximation
     ## two roots are same if the difference is less than the 
     ## predefined PRECISION
-    if (length(numer.roots.pos) > 0) {
-      for (i in 1:length(numer.roots.pos)) {
-        if (length(denom.roots.pos) > 0) {
-          d <- Mod(denom.roots.pos - numer.roots.pos[i])
-          for (j in 1:length(d)) {
-            if (d[j] < PRECISION) {
-              denom.roots.pos <- denom.roots.pos[-j]
-              tmp.roots <- c(tmp.roots, numer.roots.pos[i])
-              break
-            }
+    if (length(denom.roots) > 0) {
+      for (i in 1:length(denom.roots)) {
+        if (length(numer.roots) > 0) {
+          d <- Mod(denom.roots[i] - numer.roots)
+          ind <- which.min(d)
+          if (d[ind] < PRECISION) {
+            numer.roots <- numer.roots[-ind]
+            tmp.roots <- c(tmp.roots, denom.roots[i])
           }
         }
       }
     }
 
     ## roots in simplified RFA
-    numer.roots <- numer.roots[!numer.roots %in% tmp.roots]
-    denom.roots <- c(denom.roots.neg, denom.roots.pos)
+    denom.roots <- denom.roots[!denom.roots %in% tmp.roots]
 
     ## convert roots from t - 1 to t
     roots <- denom.roots + 1
+
     ## pacman rule checking
-    if (length(which(roots == 0)) || length(which(Re(roots) > 0))) {
+    if (any(Re(roots) >= 0)) {
       m <- m - 2
       next
     } else {
